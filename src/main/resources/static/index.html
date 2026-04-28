@@ -3,97 +3,144 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Traffic System | Intelligent Traffic Monitoring</title>
-<meta name="description" content="Next-generation AI-powered traffic monitoring and violation detection system.">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>SmartTraffic — Speed Violation Checker</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-<canvas id="gridCanvas"></canvas>
-<div class="particles" id="particles"></div>
 
-<nav class="nav">
-  <div class="nav-brand">
-    <div class="logo-icon">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+<!-- Top Bar -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="logo-mark"></div>
+    <span class="wordmark">SmartTraffic</span>
+  </div>
+  <div class="topbar-right">
+    <span class="live-badge"><span class="live-dot"></span>System Live</span>
+    <a href="/swagger-ui/index.html" class="topbar-link">API Docs</a>
+    <a href="https://github.com/Kmennn/SmartTrafficSystem" class="topbar-link">GitHub</a>
+  </div>
+</header>
+
+<main class="dashboard">
+
+  <!-- Left: The Checker Form -->
+  <section class="panel checker-panel">
+    <div class="panel-head">
+      <h2>Check Vehicle</h2>
+      <p class="panel-desc">Enter vehicle details to check for speed violations</p>
     </div>
-    <span class="logo-text">SMART<span class="accent">TRAFFIC</span></span>
-  </div>
-  <div class="nav-links">
-    <a href="#features">Features</a>
-    <a href="#stats">Analytics</a>
-    <a href="/swagger-ui/index.html" class="nav-btn">API Docs</a>
-  </div>
-</nav>
 
-<section class="hero">
-  <div class="hero-badge"><span class="badge-dot"></span>SYSTEM ONLINE — MONITORING ACTIVE</div>
-  <h1 class="hero-title">Intelligent Traffic<br><span class="gradient-text">Violation Detection</span></h1>
-  <p class="hero-subtitle">Next-generation AI-powered traffic monitoring system that detects speed violations in real-time, calculates adaptive fines, and stores comprehensive violation records across all monitored zones.</p>
-  <div class="hero-actions">
-    <a href="/traffic/violations" class="btn-primary">View Live Violations</a>
-    <a href="/swagger-ui/index.html" class="btn-secondary">Explore API →</a>
-  </div>
-  <div class="terminal">
-    <div class="terminal-header">
-      <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
-      <span class="terminal-title">API Response — /traffic/check</span>
+    <form id="checkerForm" autocomplete="off">
+      <div class="field">
+        <label for="vehicleId">Vehicle Number</label>
+        <input type="text" id="vehicleId" placeholder="MH-12-AB-1234" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="speed">Speed (km/h)</label>
+          <input type="number" id="speed" placeholder="0" min="0" max="400" required>
+        </div>
+        <div class="field">
+          <label for="zone">Zone</label>
+          <input type="text" id="zone" placeholder="Highway NH-48" required>
+        </div>
+      </div>
+      <div class="field toggle-field">
+        <label class="toggle-label">
+          <span>Emergency Vehicle</span>
+          <div class="toggle-wrap">
+            <input type="checkbox" id="emergency">
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </div>
+        </label>
+      </div>
+      <button type="submit" class="submit-btn" id="submitBtn">
+        <span class="btn-text">Check Violation</span>
+        <span class="btn-loader" id="btnLoader"></span>
+      </button>
+    </form>
+
+    <!-- Result Card -->
+    <div class="result-card hidden" id="resultCard">
+      <div class="result-icon" id="resultIcon"></div>
+      <div class="result-body">
+        <h3 id="resultTitle"></h3>
+        <p id="resultMsg"></p>
+      </div>
+      <div class="result-fine hidden" id="resultFine">
+        <span class="fine-label">Fine Amount</span>
+        <span class="fine-value" id="fineValue"></span>
+      </div>
+      <div class="result-details hidden" id="resultDetails">
+        <div class="detail"><span>Vehicle</span><span id="detVehicle"></span></div>
+        <div class="detail"><span>Speed</span><span id="detSpeed"></span></div>
+        <div class="detail"><span>Zone</span><span id="detZone"></span></div>
+      </div>
     </div>
-    <div class="terminal-body">
-      <div class="code-line"><span class="code-comment">// POST /traffic/check</span></div>
-      <div class="code-line"><span class="code-key">"vehicleId"</span>: <span class="code-string">"MH-12-AB-1234"</span>,</div>
-      <div class="code-line"><span class="code-key">"speed"</span>: <span class="code-number">127.5</span>,</div>
-      <div class="code-line"><span class="code-key">"zone"</span>: <span class="code-string">"Highway NH-48"</span>,</div>
-      <div class="code-line"><span class="code-key">"fine"</span>: <span class="code-number">5000</span></div>
-      <div class="code-line"><span class="code-status">⚡ Violation Detected & Saved</span></div>
+  </section>
+
+  <!-- Right: Violations Log -->
+  <section class="panel log-panel">
+    <div class="panel-head">
+      <h2>Violation Log</h2>
+      <button class="refresh-btn" id="refreshBtn" title="Refresh">↻</button>
     </div>
-  </div>
-</section>
 
-<section class="stats" id="stats">
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-icon blue"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div class="stat-number" data-target="2847">0</div><div class="stat-label">Violations Detected</div><div class="stat-change positive">↑ 12.5% this week</div></div>
-    <div class="stat-card"><div class="stat-icon purple"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="stat-number" data-target="14">0</div><div class="stat-label">Monitored Zones</div><div class="stat-change positive">↑ 3 new zones</div></div>
-    <div class="stat-card"><div class="stat-icon cyan"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="stat-number" data-target="99">0</div><div class="stat-label">Uptime %</div><div class="stat-change neutral">— Stable</div></div>
-    <div class="stat-card"><div class="stat-icon green"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="stat-number" data-target="47">0</div><div class="stat-label">Avg Response (ms)</div><div class="stat-change positive">↓ 8ms faster</div></div>
-  </div>
-</section>
+    <div class="stats-row">
+      <div class="mini-stat">
+        <span class="mini-val" id="totalCount">—</span>
+        <span class="mini-lbl">Total</span>
+      </div>
+      <div class="mini-stat">
+        <span class="mini-val" id="totalFines">—</span>
+        <span class="mini-lbl">Fines Collected</span>
+      </div>
+      <div class="mini-stat">
+        <span class="mini-val" id="avgSpeed">—</span>
+        <span class="mini-lbl">Avg Speed</span>
+      </div>
+    </div>
 
-<section class="features" id="features">
-  <div class="section-header">
-    <span class="section-badge">CAPABILITIES</span>
-    <h2>Built for <span class="gradient-text">Performance</span></h2>
-    <p>A robust, production-grade API designed to handle millions of traffic events.</p>
-  </div>
-  <div class="features-grid">
-    <div class="feature-card"><div class="feature-icon">⚡</div><h3>Real-Time Detection</h3><p>Instant speed violation detection with sub-50ms response times across all monitored highway zones.</p></div>
-    <div class="feature-card"><div class="feature-icon">🛡️</div><h3>Adaptive Fines</h3><p>Intelligent fine calculation engine with tiered penalties based on speed severity and zone classification.</p></div>
-    <div class="feature-card"><div class="feature-icon">🗄️</div><h3>PostgreSQL Backed</h3><p>Enterprise-grade PostgreSQL database ensuring persistent, reliable storage of all violation records.</p></div>
-    <div class="feature-card"><div class="feature-icon">📡</div><h3>RESTful API</h3><p>Clean, documented REST endpoints with full Swagger/OpenAPI integration for seamless third-party access.</p></div>
-    <div class="feature-card"><div class="feature-icon">🚨</div><h3>Emergency Override</h3><p>Automatic exemption system for emergency vehicles ensuring zero false violations for first responders.</p></div>
-    <div class="feature-card"><div class="feature-icon">☁️</div><h3>Cloud Deployed</h3><p>Running on Render with automatic scaling, zero-downtime deploys, and SSL encryption.</p></div>
-  </div>
-</section>
+    <div class="table-wrap" id="tableWrap">
+      <div class="table-empty" id="tableEmpty">
+        <p>No violations recorded yet.</p>
+        <p class="sub">Submit a vehicle check to get started.</p>
+      </div>
+      <table class="viol-table hidden" id="violTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Vehicle</th>
+            <th>Speed</th>
+            <th>Zone</th>
+            <th>Fine</th>
+          </tr>
+        </thead>
+        <tbody id="violBody"></tbody>
+      </table>
+    </div>
+  </section>
 
-<section class="endpoints">
-  <div class="section-header">
-    <span class="section-badge">ENDPOINTS</span>
-    <h2>API <span class="gradient-text">Reference</span></h2>
-  </div>
-  <div class="endpoints-list">
-    <div class="endpoint-card"><div class="endpoint-header"><span class="method post">POST</span><code>/traffic/check</code></div><p>Submit a vehicle event for speed violation analysis.</p></div>
-    <div class="endpoint-card"><div class="endpoint-header"><span class="method get">GET</span><code>/traffic/violations</code></div><p>Retrieve all recorded violations from the database.</p></div>
-    <div class="endpoint-card"><div class="endpoint-header"><span class="method get">GET</span><code>/swagger-ui/index.html</code></div><p>Interactive API documentation with try-it-out functionality.</p></div>
-  </div>
-</section>
+</main>
 
-<footer class="footer">
-  <div class="footer-content">
-    <span class="logo-text">SMART<span class="accent">TRAFFIC</span></span>
-    <div class="footer-links"><a href="/traffic/violations">Violations</a><a href="/swagger-ui/index.html">API Docs</a><a href="https://github.com/Kmennn/SmartTrafficSystem">GitHub</a></div>
-  </div>
-  <div class="footer-bottom"><p>© 2026 SmartTraffic System. Built with Spring Boot & PostgreSQL.</p></div>
+<!-- Speed Gauge Background Element -->
+<div class="bg-gauge" aria-hidden="true">
+  <svg viewBox="0 0 200 120" fill="none">
+    <path d="M20 100 A80 80 0 0 1 180 100" stroke="rgba(255,255,255,0.03)" stroke-width="12" stroke-linecap="round"/>
+    <path d="M20 100 A80 80 0 0 1 180 100" stroke="url(#gaugeGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="100" id="gaugeArc"/>
+    <defs><linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="50%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient></defs>
+  </svg>
+</div>
+
+<footer class="foot">
+  <p>SmartTraffic System &mdash; Spring Boot + PostgreSQL &mdash; Deployed on Render</p>
 </footer>
+
 <script src="/script.js"></script>
 </body>
 </html>

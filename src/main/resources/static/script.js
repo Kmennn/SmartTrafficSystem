@@ -1,102 +1,130 @@
-// ===== ANIMATED GRID CANVAS =====
-const canvas = document.getElementById('gridCanvas');
-const ctx = canvas.getContext('2d');
+// ===== FORM SUBMISSION =====
+const form = document.getElementById('checkerForm');
+const submitBtn = document.getElementById('submitBtn');
+const resultCard = document.getElementById('resultCard');
 
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  submitBtn.classList.add('loading');
+  resultCard.classList.add('hidden');
 
-let time = 0;
-function drawGrid() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const spacing = 60;
-  const cols = Math.ceil(canvas.width / spacing) + 1;
-  const rows = Math.ceil(canvas.height / spacing) + 1;
+  const payload = {
+    vehicleId: document.getElementById('vehicleId').value.trim(),
+    speed: parseFloat(document.getElementById('speed').value),
+    zone: document.getElementById('zone').value.trim(),
+    emergency: document.getElementById('emergency').checked
+  };
 
-  for (let i = 0; i < cols; i++) {
-    for (let j = 0; j < rows; j++) {
-      const x = i * spacing;
-      const y = j * spacing;
-      const dist = Math.sqrt(Math.pow(x - canvas.width / 2, 2) + Math.pow(y - canvas.height / 2, 2));
-      const wave = Math.sin(dist * 0.005 - time * 0.02) * 0.5 + 0.5;
-      const alpha = wave * 0.12;
-      ctx.beginPath();
-      ctx.arc(x, y, 1.2, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(99, 130, 255, ${alpha})`;
-      ctx.fill();
-    }
+  try {
+    const res = await fetch('/traffic/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    showResult(data, payload);
+    loadViolations();
+  } catch (err) {
+    // null response means no violation
+    showResult(null, payload);
   }
-  time++;
-  requestAnimationFrame(drawGrid);
-}
-drawGrid();
 
-// ===== FLOATING PARTICLES =====
-const particlesContainer = document.getElementById('particles');
-for (let i = 0; i < 30; i++) {
-  const particle = document.createElement('div');
-  particle.className = 'particle';
-  particle.style.left = Math.random() * 100 + '%';
-  particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
-  particle.style.animationDelay = (Math.random() * 10) + 's';
-  particle.style.width = (Math.random() * 3 + 1) + 'px';
-  particle.style.height = particle.style.width;
-  const colors = ['#6382ff', '#a855f7', '#22d3ee', '#34d399'];
-  particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-  particlesContainer.appendChild(particle);
-}
-
-// ===== COUNTER ANIMATION =====
-function animateCounters() {
-  const counters = document.querySelectorAll('.stat-number');
-  counters.forEach(counter => {
-    const target = parseInt(counter.getAttribute('data-target'));
-    const duration = 2000;
-    const startTime = performance.now();
-
-    function updateCounter(currentTime) {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      counter.textContent = Math.floor(eased * target).toLocaleString();
-      if (progress < 1) requestAnimationFrame(updateCounter);
-    }
-    requestAnimationFrame(updateCounter);
-  });
-}
-
-// ===== INTERSECTION OBSERVER FOR ANIMATIONS =====
-const observerOptions = { threshold: 0.2 };
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.style.opacity = '1';
-      entry.target.style.transform = 'translateY(0)';
-      if (entry.target.classList.contains('stats')) animateCounters();
-    }
-  });
-}, observerOptions);
-
-document.querySelectorAll('.stat-card, .feature-card, .endpoint-card').forEach(el => {
-  el.style.opacity = '0';
-  el.style.transform = 'translateY(30px)';
-  el.style.transition = 'all 0.6s ease';
-  observer.observe(el);
+  submitBtn.classList.remove('loading');
 });
 
-document.querySelectorAll('.stats').forEach(el => observer.observe(el));
+function showResult(data, payload) {
+  const card = document.getElementById('resultCard');
+  const icon = document.getElementById('resultIcon');
+  const title = document.getElementById('resultTitle');
+  const msg = document.getElementById('resultMsg');
+  const fineSection = document.getElementById('resultFine');
+  const fineValue = document.getElementById('fineValue');
+  const details = document.getElementById('resultDetails');
 
-// ===== TYPING EFFECT FOR TERMINAL =====
-const codeLines = document.querySelectorAll('.code-line');
-codeLines.forEach((line, i) => {
-  line.style.opacity = '0';
-  line.style.transform = 'translateX(-10px)';
-  setTimeout(() => {
-    line.style.transition = 'all 0.4s ease';
-    line.style.opacity = '1';
-    line.style.transform = 'translateX(0)';
-  }, 1200 + i * 200);
+  card.classList.remove('hidden', 'violation', 'safe');
+
+  if (data && data.fine) {
+    card.classList.add('violation');
+    icon.textContent = '🚨';
+    title.textContent = 'Violation Detected!';
+    msg.textContent = 'This vehicle exceeded the speed limit. A fine has been issued and saved to the database.';
+    fineSection.classList.remove('hidden');
+    fineValue.textContent = '₹' + data.fine.toLocaleString();
+    details.classList.remove('hidden');
+    document.getElementById('detVehicle').textContent = data.vehicleId;
+    document.getElementById('detSpeed').textContent = data.speed + ' km/h';
+    document.getElementById('detZone').textContent = data.zone;
+  } else {
+    card.classList.add('safe');
+    icon.textContent = '✅';
+    title.textContent = 'No Violation';
+    if (payload.emergency) {
+      msg.textContent = 'Emergency vehicle — automatically exempted from speed checks.';
+    } else {
+      msg.textContent = 'Vehicle is within the speed limit (≤ 80 km/h). No fine issued.';
+    }
+    fineSection.classList.add('hidden');
+    details.classList.add('hidden');
+  }
+}
+
+// ===== LOAD VIOLATIONS TABLE =====
+async function loadViolations() {
+  try {
+    const res = await fetch('/traffic/violations');
+    const data = await res.json();
+
+    const tableEmpty = document.getElementById('tableEmpty');
+    const table = document.getElementById('violTable');
+    const body = document.getElementById('violBody');
+    const countEl = document.getElementById('totalCount');
+    const finesEl = document.getElementById('totalFines');
+    const avgEl = document.getElementById('avgSpeed');
+
+    if (!data || data.length === 0) {
+      tableEmpty.classList.remove('hidden');
+      table.classList.add('hidden');
+      countEl.textContent = '0';
+      finesEl.textContent = '₹0';
+      avgEl.textContent = '—';
+      return;
+    }
+
+    tableEmpty.classList.add('hidden');
+    table.classList.remove('hidden');
+
+    // Stats
+    const totalFines = data.reduce((s, v) => s + v.fine, 0);
+    const avgSpeed = (data.reduce((s, v) => s + v.speed, 0) / data.length).toFixed(1);
+    countEl.textContent = data.length;
+    finesEl.textContent = '₹' + totalFines.toLocaleString();
+    avgEl.textContent = avgSpeed + ' km/h';
+
+    // Table rows
+    body.innerHTML = '';
+    data.reverse().forEach((v, i) => {
+      const fineClass = v.fine >= 5000 ? 'high' : v.fine >= 2000 ? 'mid' : 'low';
+      const row = document.createElement('tr');
+      row.innerHTML =
+        '<td>' + (data.length - i) + '</td>' +
+        '<td>' + v.vehicleId + '</td>' +
+        '<td><span class="speed-val">' + v.speed + ' km/h</span></td>' +
+        '<td>' + v.zone + '</td>' +
+        '<td><span class="fine-badge ' + fineClass + '">₹' + v.fine.toLocaleString() + '</span></td>';
+      body.appendChild(row);
+    });
+  } catch (err) {
+    console.error('Failed to load violations:', err);
+  }
+}
+
+// ===== REFRESH BUTTON =====
+document.getElementById('refreshBtn').addEventListener('click', function () {
+  this.classList.add('spinning');
+  loadViolations();
+  setTimeout(() => this.classList.remove('spinning'), 600);
 });
+
+// ===== LOAD ON PAGE START =====
+loadViolations();
