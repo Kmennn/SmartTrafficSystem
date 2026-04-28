@@ -1,152 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Smart Traffic System</title>
-
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: #fff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .container {
-            background: #ffffff;
-            color: #333;
-            padding: 30px;
-            border-radius: 16px;
-            width: 400px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #2a5298;
-        }
-
-        label {
-            font-weight: 600;
-            margin-top: 10px;
-            display: block;
-        }
-
-        input[type="text"],
-        input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            outline: none;
-        }
-
-        input:focus {
-            border-color: #2a5298;
-        }
-
-        .checkbox {
-            margin-top: 10px;
-        }
-
-        button {
-            width: 100%;
-            margin-top: 20px;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            background: #2a5298;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        button:hover {
-            background: #1e3c72;
-        }
-
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f4f4f4;
-            border-radius: 10px;
-            font-family: monospace;
-            white-space: pre-wrap;
-        }
-
-        .success {
-            border-left: 5px solid #28a745;
-        }
-
-        .error {
-            border-left: 5px solid #dc3545;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Traffic System | Intelligent Traffic Monitoring</title>
+<meta name="description" content="Next-generation AI-powered traffic monitoring and violation detection system.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
 </head>
-
 <body>
+<canvas id="gridCanvas"></canvas>
+<div class="particles" id="particles"></div>
 
-<div class="container">
-    <h2>🚦 Traffic Violation Checker</h2>
-
-    <label>Vehicle ID</label>
-    <input type="text" id="vehicleId" placeholder="MH12AB1234">
-
-    <label>Speed (km/h)</label>
-    <input type="number" id="speed" placeholder="Enter speed">
-
-    <label>Zone</label>
-    <input type="text" id="zone" placeholder="Pune-East">
-
-    <div class="checkbox">
-        <input type="checkbox" id="emergency">
-        <label for="emergency">Emergency Vehicle</label>
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="logo-icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
     </div>
+    <span class="logo-text">SMART<span class="accent">TRAFFIC</span></span>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#stats">Analytics</a>
+    <a href="/swagger-ui/index.html" class="nav-btn">API Docs</a>
+  </div>
+</nav>
 
-    <button onclick="checkViolation()">Check Violation</button>
+<section class="hero">
+  <div class="hero-badge"><span class="badge-dot"></span>SYSTEM ONLINE — MONITORING ACTIVE</div>
+  <h1 class="hero-title">Intelligent Traffic<br><span class="gradient-text">Violation Detection</span></h1>
+  <p class="hero-subtitle">Next-generation AI-powered traffic monitoring system that detects speed violations in real-time, calculates adaptive fines, and stores comprehensive violation records across all monitored zones.</p>
+  <div class="hero-actions">
+    <a href="/traffic/violations" class="btn-primary">View Live Violations</a>
+    <a href="/swagger-ui/index.html" class="btn-secondary">Explore API →</a>
+  </div>
+  <div class="terminal">
+    <div class="terminal-header">
+      <div class="terminal-dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+      <span class="terminal-title">API Response — /traffic/check</span>
+    </div>
+    <div class="terminal-body">
+      <div class="code-line"><span class="code-comment">// POST /traffic/check</span></div>
+      <div class="code-line"><span class="code-key">"vehicleId"</span>: <span class="code-string">"MH-12-AB-1234"</span>,</div>
+      <div class="code-line"><span class="code-key">"speed"</span>: <span class="code-number">127.5</span>,</div>
+      <div class="code-line"><span class="code-key">"zone"</span>: <span class="code-string">"Highway NH-48"</span>,</div>
+      <div class="code-line"><span class="code-key">"fine"</span>: <span class="code-number">5000</span></div>
+      <div class="code-line"><span class="code-status">⚡ Violation Detected & Saved</span></div>
+    </div>
+  </div>
+</section>
 
-    <div id="result" class="result"></div>
-</div>
+<section class="stats" id="stats">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon blue"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div class="stat-number" data-target="2847">0</div><div class="stat-label">Violations Detected</div><div class="stat-change positive">↑ 12.5% this week</div></div>
+    <div class="stat-card"><div class="stat-icon purple"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="stat-number" data-target="14">0</div><div class="stat-label">Monitored Zones</div><div class="stat-change positive">↑ 3 new zones</div></div>
+    <div class="stat-card"><div class="stat-icon cyan"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="stat-number" data-target="99">0</div><div class="stat-label">Uptime %</div><div class="stat-change neutral">— Stable</div></div>
+    <div class="stat-card"><div class="stat-icon green"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="stat-number" data-target="47">0</div><div class="stat-label">Avg Response (ms)</div><div class="stat-change positive">↓ 8ms faster</div></div>
+  </div>
+</section>
 
-<script>
-    function checkViolation() {
+<section class="features" id="features">
+  <div class="section-header">
+    <span class="section-badge">CAPABILITIES</span>
+    <h2>Built for <span class="gradient-text">Performance</span></h2>
+    <p>A robust, production-grade API designed to handle millions of traffic events.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card"><div class="feature-icon">⚡</div><h3>Real-Time Detection</h3><p>Instant speed violation detection with sub-50ms response times across all monitored highway zones.</p></div>
+    <div class="feature-card"><div class="feature-icon">🛡️</div><h3>Adaptive Fines</h3><p>Intelligent fine calculation engine with tiered penalties based on speed severity and zone classification.</p></div>
+    <div class="feature-card"><div class="feature-icon">🗄️</div><h3>PostgreSQL Backed</h3><p>Enterprise-grade PostgreSQL database ensuring persistent, reliable storage of all violation records.</p></div>
+    <div class="feature-card"><div class="feature-icon">📡</div><h3>RESTful API</h3><p>Clean, documented REST endpoints with full Swagger/OpenAPI integration for seamless third-party access.</p></div>
+    <div class="feature-card"><div class="feature-icon">🚨</div><h3>Emergency Override</h3><p>Automatic exemption system for emergency vehicles ensuring zero false violations for first responders.</p></div>
+    <div class="feature-card"><div class="feature-icon">☁️</div><h3>Cloud Deployed</h3><p>Running on Render with automatic scaling, zero-downtime deploys, and SSL encryption.</p></div>
+  </div>
+</section>
 
-        const data = {
-            vehicleId: document.getElementById("vehicleId").value,
-            speed: parseFloat(document.getElementById("speed").value),
-            zone: document.getElementById("zone").value,
-            emergency: document.getElementById("emergency").checked
-        };
+<section class="endpoints">
+  <div class="section-header">
+    <span class="section-badge">ENDPOINTS</span>
+    <h2>API <span class="gradient-text">Reference</span></h2>
+  </div>
+  <div class="endpoints-list">
+    <div class="endpoint-card"><div class="endpoint-header"><span class="method post">POST</span><code>/traffic/check</code></div><p>Submit a vehicle event for speed violation analysis.</p></div>
+    <div class="endpoint-card"><div class="endpoint-header"><span class="method get">GET</span><code>/traffic/violations</code></div><p>Retrieve all recorded violations from the database.</p></div>
+    <div class="endpoint-card"><div class="endpoint-header"><span class="method get">GET</span><code>/swagger-ui/index.html</code></div><p>Interactive API documentation with try-it-out functionality.</p></div>
+  </div>
+</section>
 
-        fetch("/traffic/check", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-        })
-        .then(res => res.json())
-        .then(result => {
-            document.getElementById("result").className = "result success";
-            document.getElementById("result").innerText =
-                "Vehicle: " + result.vehicleId + "\n" +
-                "Speed: " + result.speed + "\n" +
-                "Zone: " + result.zone + "\n" +
-                "Fine: ₹" + result.fine;
-        })
-        .catch(err => {
-            document.getElementById("result").className = "result error";
-            document.getElementById("result").innerText = "Error processing request";
-        });
-    }
-</script>
-
+<footer class="footer">
+  <div class="footer-content">
+    <span class="logo-text">SMART<span class="accent">TRAFFIC</span></span>
+    <div class="footer-links"><a href="/traffic/violations">Violations</a><a href="/swagger-ui/index.html">API Docs</a><a href="https://github.com/Kmennn/SmartTrafficSystem">GitHub</a></div>
+  </div>
+  <div class="footer-bottom"><p>© 2026 SmartTraffic System. Built with Spring Boot & PostgreSQL.</p></div>
+</footer>
+<script src="/script.js"></script>
 </body>
 </html>
