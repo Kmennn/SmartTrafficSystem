@@ -1,14 +1,30 @@
+// ===== HUD CLOCK =====
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById('hudClock').textContent = h + ':' + m + ':' + s;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ===== EMERGENCY TOGGLE LABEL =====
+document.getElementById('emergency').addEventListener('change', function () {
+  document.getElementById('switchVal').textContent = this.checked ? 'AFFIRMATIVE' : 'NEGATIVE';
+});
+
 // ===== FORM SUBMISSION =====
 const form = document.getElementById('checkerForm');
 const submitBtn = document.getElementById('submitBtn');
 const resultCard = document.getElementById('resultCard');
 
-form.addEventListener('submit', async (e) => {
+form.addEventListener('submit', async function (e) {
   e.preventDefault();
   submitBtn.classList.add('loading');
   resultCard.classList.add('hidden');
 
-  const payload = {
+  var payload = {
     vehicleId: document.getElementById('vehicleId').value.trim(),
     speed: parseFloat(document.getElementById('speed').value),
     zone: document.getElementById('zone').value.trim(),
@@ -16,17 +32,25 @@ form.addEventListener('submit', async (e) => {
   };
 
   try {
-    const res = await fetch('/traffic/check', {
+    var res = await fetch('/traffic/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
-    showResult(data, payload);
+    if (res.ok) {
+      var text = await res.text();
+      if (text && text.trim().length > 0) {
+        var data = JSON.parse(text);
+        showResult(data, payload);
+      } else {
+        showResult(null, payload);
+      }
+    } else {
+      showResult(null, payload);
+    }
     loadViolations();
   } catch (err) {
-    // null response means no violation
     showResult(null, payload);
   }
 
@@ -34,97 +58,98 @@ form.addEventListener('submit', async (e) => {
 });
 
 function showResult(data, payload) {
-  const card = document.getElementById('resultCard');
-  const icon = document.getElementById('resultIcon');
-  const title = document.getElementById('resultTitle');
-  const msg = document.getElementById('resultMsg');
-  const fineSection = document.getElementById('resultFine');
-  const fineValue = document.getElementById('fineValue');
-  const details = document.getElementById('resultDetails');
+  var card = document.getElementById('resultCard');
+  var tag = document.getElementById('intelTag');
+  var idEl = document.getElementById('intelId');
+  var msg = document.getElementById('resultMsg');
+  var fineSection = document.getElementById('resultFine');
+  var fineValue = document.getElementById('fineValue');
+  var details = document.getElementById('resultDetails');
 
-  card.classList.remove('hidden', 'violation', 'safe');
+  card.classList.remove('hidden', 'threat', 'clear');
+  card.className = 'intel-card';
+
+  var timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
   if (data && data.fine) {
-    card.classList.add('violation');
-    icon.textContent = '🚨';
-    title.textContent = 'Violation Detected!';
-    msg.textContent = 'This vehicle exceeded the speed limit. A fine has been issued and saved to the database.';
+    card.classList.add('threat');
+    tag.textContent = 'HOSTILE IDENTIFIED';
+    tag.className = 'intel-tag hostile';
+    idEl.textContent = timestamp;
+    msg.textContent = 'Speed violation confirmed. Target exceeded limit in designated sector. Penalty has been logged to database.';
     fineSection.classList.remove('hidden');
-    fineValue.textContent = '₹' + data.fine.toLocaleString();
+    fineValue.textContent = 'Rs. ' + data.fine.toLocaleString();
     details.classList.remove('hidden');
     document.getElementById('detVehicle').textContent = data.vehicleId;
-    document.getElementById('detSpeed').textContent = data.speed + ' km/h';
+    document.getElementById('detSpeed').textContent = data.speed + ' KM/H';
     document.getElementById('detZone').textContent = data.zone;
   } else {
-    card.classList.add('safe');
-    icon.textContent = '✅';
-    title.textContent = 'No Violation';
+    card.classList.add('clear');
+    tag.textContent = 'ALL CLEAR';
+    tag.className = 'intel-tag friendly';
+    idEl.textContent = timestamp;
     if (payload.emergency) {
-      msg.textContent = 'Emergency vehicle — automatically exempted from speed checks.';
+      msg.textContent = 'Emergency unit identified. Target is exempt from speed enforcement protocols.';
     } else {
-      msg.textContent = 'Vehicle is within the speed limit (≤ 80 km/h). No fine issued.';
+      msg.textContent = 'Target operating within permitted speed parameters. No violation to report.';
     }
     fineSection.classList.add('hidden');
     details.classList.add('hidden');
   }
 }
 
-// ===== LOAD VIOLATIONS TABLE =====
+// ===== LOAD VIOLATIONS =====
 async function loadViolations() {
   try {
-    const res = await fetch('/traffic/violations');
-    const data = await res.json();
+    var res = await fetch('/traffic/violations');
+    var data = await res.json();
 
-    const tableEmpty = document.getElementById('tableEmpty');
-    const table = document.getElementById('violTable');
-    const body = document.getElementById('violBody');
-    const countEl = document.getElementById('totalCount');
-    const finesEl = document.getElementById('totalFines');
-    const avgEl = document.getElementById('avgSpeed');
+    var tableEmpty = document.getElementById('tableEmpty');
+    var table = document.getElementById('violTable');
+    var body = document.getElementById('violBody');
+    var countEl = document.getElementById('totalCount');
+    var finesEl = document.getElementById('totalFines');
+    var avgEl = document.getElementById('avgSpeed');
 
     if (!data || data.length === 0) {
       tableEmpty.classList.remove('hidden');
       table.classList.add('hidden');
       countEl.textContent = '0';
-      finesEl.textContent = '₹0';
-      avgEl.textContent = '—';
+      finesEl.textContent = 'Rs. 0';
+      avgEl.textContent = '--';
       return;
     }
 
     tableEmpty.classList.add('hidden');
     table.classList.remove('hidden');
 
-    // Stats
-    const totalFines = data.reduce((s, v) => s + v.fine, 0);
-    const avgSpeed = (data.reduce((s, v) => s + v.speed, 0) / data.length).toFixed(1);
+    var totalFines = data.reduce(function (s, v) { return s + v.fine; }, 0);
+    var avgSpeed = (data.reduce(function (s, v) { return s + v.speed; }, 0) / data.length).toFixed(1);
     countEl.textContent = data.length;
-    finesEl.textContent = '₹' + totalFines.toLocaleString();
-    avgEl.textContent = avgSpeed + ' km/h';
+    finesEl.textContent = 'Rs. ' + totalFines.toLocaleString();
+    avgEl.textContent = avgSpeed;
 
-    // Table rows
     body.innerHTML = '';
-    data.reverse().forEach((v, i) => {
-      const fineClass = v.fine >= 5000 ? 'high' : v.fine >= 2000 ? 'mid' : 'low';
-      const row = document.createElement('tr');
+    data.reverse().forEach(function (v, i) {
+      var tierClass = v.fine >= 5000 ? 'tier3' : v.fine >= 2000 ? 'tier2' : 'tier1';
+      var row = document.createElement('tr');
       row.innerHTML =
         '<td>' + (data.length - i) + '</td>' +
         '<td>' + v.vehicleId + '</td>' +
-        '<td><span class="speed-val">' + v.speed + ' km/h</span></td>' +
+        '<td><span class="speed-hot">' + v.speed + '</span></td>' +
         '<td>' + v.zone + '</td>' +
-        '<td><span class="fine-badge ' + fineClass + '">₹' + v.fine.toLocaleString() + '</span></td>';
+        '<td><span class="fine-tag ' + tierClass + '">Rs. ' + v.fine.toLocaleString() + '</span></td>';
       body.appendChild(row);
     });
   } catch (err) {
-    console.error('Failed to load violations:', err);
+    console.error('Intel fetch failed:', err);
   }
 }
 
-// ===== REFRESH BUTTON =====
+// ===== REFRESH =====
 document.getElementById('refreshBtn').addEventListener('click', function () {
-  this.classList.add('spinning');
   loadViolations();
-  setTimeout(() => this.classList.remove('spinning'), 600);
 });
 
-// ===== LOAD ON PAGE START =====
+// ===== INIT =====
 loadViolations();
